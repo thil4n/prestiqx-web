@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import SimpleStorageArtifact from "../contracts/SimpleStorage.json";
+import EventManagerArtifact from "../contracts/EventManager.json";
 
 type TruffleArtifact = {
     abi: any;
@@ -10,9 +10,9 @@ type TruffleArtifact = {
     };
 };
 
-const artifact = SimpleStorageArtifact as unknown as TruffleArtifact;
+const artifact = EventManagerArtifact as unknown as TruffleArtifact;
 
-export const getSimpleStorageContract = async (
+export const getEventManagerContract = async (
     provider: ethers.BrowserProvider
 ) => {
     const network = await provider.getNetwork();
@@ -21,7 +21,7 @@ export const getSimpleStorageContract = async (
     const deployedNetwork = artifact.networks[networkId];
 
     if (!deployedNetwork) {
-        throw new Error(`SimpleStorage not deployed on chain ${networkId}`);
+        throw new Error(`EventManager is not deployed on chain ${networkId}`);
     }
 
     const signer = await provider.getSigner();
