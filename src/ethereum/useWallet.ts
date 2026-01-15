@@ -6,7 +6,6 @@ export const useWallet = () => {
     const [provider, setProvider] = useState<ethers.BrowserProvider | null>(
         null
     );
-    const [chainId, setChainId] = useState<number | null>(null);
 
     const connect = async () => {
         if (!window.ethereum) {
@@ -14,47 +13,45 @@ export const useWallet = () => {
             return;
         }
 
+        const browserProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(browserProvider);
+
         const accounts = await window.ethereum.request({
             method: "eth_requestAccounts",
         });
-
-        const browserProvider = new ethers.BrowserProvider(window.ethereum);
-        const network = await browserProvider.getNetwork();
-
-        setAccount(accounts[0]);
-        setProvider(browserProvider);
-        setChainId(Number(network.chainId));
-    };
-
-    const disconnect = () => {
-        // MetaMask doesn't truly disconnect
-        setAccount(null);
-        setProvider(null);
-        setChainId(null);
+        if (accounts.length > 0) setAccount(accounts[0]);
     };
 
     useEffect(() => {
         if (!window.ethereum) return;
 
-        window.ethereum.on("accountsChanged", (accounts: string[]) => {
-            setAccount(accounts.length ? accounts[0] : null);
-        });
+        const browserProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(browserProvider);
 
-        window.ethereum.on("chainChanged", (chainId: string) => {
-            setChainId(parseInt(chainId, 16));
-        });
+        const handleAccountsChanged = (accounts: string[]) => {
+            setAccount(accounts.length ? accounts[0] : null);
+        };
+
+        window.ethereum.on("accountsChanged", handleAccountsChanged);
+
+        window.ethereum
+            .request({ method: "eth_accounts" })
+            .then((accounts: string[]) => {
+                if (accounts.length > 0) setAccount(accounts[0]);
+            });
 
         return () => {
-            window.ethereum.removeAllListeners();
+            window.ethereum.removeListener(
+                "accountsChanged",
+                handleAccountsChanged
+            );
         };
     }, []);
 
     return {
         account,
         provider,
-        chainId,
         connect,
-        disconnect,
         isConnected: !!account,
     };
 };
