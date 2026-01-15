@@ -3,10 +3,13 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, Filter } from "lucide-react";
 import { getEventManagerContract } from "../ethereum/EventManager";
+import { useWallet } from "../ethereum/useWallet";
+import { ethers } from "ethers";
 
 export const EventsPage: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [events, setEvents] = useState([]);
+    const { provider } = useWallet();
 
     const categories = [
         "All",
@@ -27,11 +30,14 @@ export const EventsPage: React.FC = () => {
         if (!provider) return;
 
         const contract = await getEventManagerContract(provider);
-        const ids = await contract.getAllEvents();
+        const idsRaw: bigint[] = await contract.getAllEvents();
+        const ids: number[] = idsRaw.map((id) => Number(id));
+
+        console.log(ids);
 
         const fetchedEvents = await Promise.all(
-            ids.map(async (id: bigint) => {
-                const e = await contract.getEvent(id);
+            ids.map(async (id) => {
+                const e = await contract.getFunction("getEvent")(id);
 
                 return {
                     id: Number(e.id),
