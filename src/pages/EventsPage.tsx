@@ -33,8 +33,6 @@ export const EventsPage: React.FC = () => {
         const idsRaw: bigint[] = await contract.getAllEvents();
         const ids: number[] = idsRaw.map((id) => Number(id));
 
-        console.log(ids);
-
         const fetchedEvents = await Promise.all(
             ids.map(async (id) => {
                 const e = await contract.getFunction("getEvent")(id);
@@ -65,8 +63,10 @@ export const EventsPage: React.FC = () => {
     };
 
     useEffect(() => {
-        loadEvents();
-    }, []);
+        if (provider) {
+            loadEvents();
+        }
+    }, [provider]);
 
     return (
         <div className="pt-24 pb-16 px-6">

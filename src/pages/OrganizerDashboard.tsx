@@ -61,9 +61,10 @@ export const OrganizerDashboard: React.FC = () => {
     const handleCreateEvent = async () => {
         if (!provider) return;
 
-        const contract = await getEventManagerContract(provider);
+        const signer = await provider.getSigner();
+        const contractWithSigner = await getEventManagerContract(signer);
 
-        const tx = await contract.createEvent(
+        const tx = await contractWithSigner.createEvent(
             newEvent.title,
             newEvent.date,
             newEvent.venue,

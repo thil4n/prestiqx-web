@@ -16,6 +16,7 @@ interface Event {
     category: string;
     image: string;
     ticketsSold: number;
+    ticketPrice: number;
     totalTickets: number;
     revenue: string;
     status: "draft" | "published" | "ended";
@@ -28,6 +29,9 @@ export const TicketBuyingPage: React.FC = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [event, setEvent] = useState<Event | null>(null);
+
+    const [buying, setBuying] = useState(false);
+    const [txHash, setTxHash] = useState<string | null>(null);
 
     const loadEvent = async () => {
         if (!provider || !account || !id) return;
@@ -60,12 +64,15 @@ export const TicketBuyingPage: React.FC = () => {
                 ended,
             } = e;
 
+            console.log(ticketPrice);
+
             const eventObj: Event = {
                 id: Number(eventIdOnChain),
                 title,
                 date,
                 venue,
                 description,
+                ticketPrice,
                 image,
                 category,
                 ticketsSold: Number(ticketsSold),
@@ -84,6 +91,33 @@ export const TicketBuyingPage: React.FC = () => {
         }
 
         setIsLoading(false);
+    };
+
+    const buyTicket = async () => {
+        if (!provider || !account || !event) return;
+
+        setBuying(true);
+        setTxHash(null);
+
+        try {
+            const signer = await provider.getSigner();
+            const contract = await getEventManagerContract(signer);
+
+            console.log(BigInt(event.ticketPrice));
+
+            const tx = await contract.buyTicket(id, "test", {
+                value: BigInt(event.ticketPrice), // already WEI
+            });
+
+            const receipt = await tx.wait();
+            setTxHash(receipt.hash);
+
+            await loadEvent();
+        } catch (err) {
+            console.error("Ticket purchase failed:", err);
+        }
+
+        setBuying(false);
     };
 
     useEffect(() => {
@@ -182,6 +216,46 @@ export const TicketBuyingPage: React.FC = () => {
                                     )}
                                 </ul>
                             </div>
+                        )}
+                    </motion.div>
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
+                    >
+                        <button
+                            onClick={buyTicket}
+                            disabled={
+                                buying ||
+                                event.ticketsSold >= event.totalTickets
+                            }
+                            className={`px-6 py-3 font-bold rounded-lg text-black ${
+                                buying
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "bg-yellow-400 hover:bg-gold"
+                            }`}
+                        >
+                            {buying
+                                ? "Processing..."
+                                : event.ticketsSold >= event.totalTickets
+                                ? "Sold Out"
+                                : `Buy Ticket - ${ethers.formatEther(
+                                      event.ticketPrice
+                                  )} ETH`}
+                        </button>
+
+                        {txHash && (
+                            <p className="mt-2 text-green-400">
+                                Purchased! TX:{" "}
+                                <a
+                                    href={`https://etherscan.io/tx/${txHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline"
+                                >
+                                    {txHash.slice(0, 10)}...
+                                </a>
+                            </p>
                         )}
                     </motion.div>
                 </div>
